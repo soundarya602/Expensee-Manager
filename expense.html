@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Smart Expense Manager</title>
+
+<style>
+/* Sliding Gradient Background */
+@keyframes slideGradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(-45deg, #43cea2, #185a9d, #ff6a00, #fbd72b);
+    background-size: 400% 400%;
+    animation: slideGradient 15s ease infinite;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.container {
+    width: 450px;
+    background: rgba(255,255,255,0.95);
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+    text-align: center;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.logo-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #43cea2, #185a9d);
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    transform: rotate(-10deg);
+}
+
+h1 {
+    font-size: 24px;
+    color: #222;
+    letter-spacing: 1px;
+}
+
+.greeting {
+    margin-bottom: 20px;
+    font-weight: 600;
+    color: #444;
+}
+
+label {
+    display: block;
+    text-align: left;
+    margin-top: 12px;
+    font-weight: 600;
+    color: #444;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    margin-top: 5px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    transition: 0.3s;
+}
+
+input:focus {
+    border-color: #43cea2;
+    outline: none;
+    box-shadow: 0 0 8px rgba(67,206,162,0.4);
+}
+
+button {
+    width: 48%;
+    margin-top: 15px;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #43cea2, #185a9d);
+    color: white;
+    font-size: 15px;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-right: 4%;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+button.clear-btn {
+    background: linear-gradient(135deg, #ff4b5c, #ff6a00);
+}
+
+.expense-list {
+    margin-top: 20px;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.expense-item {
+    display: flex;
+    justify-content: space-between;
+    background: #f2f6ff;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.summary {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 12px;
+    background: #f9f9f9;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.summary div {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.savings {
+    color: green;
+}
+
+.loss {
+    color: red;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="logo">
+        <div class="logo-icon">💰</div>
+        <h1>Smart Expense Manager</h1>
+    </div>
+
+    <div class="greeting" id="greetingText">Welcome!</div>
+
+    <label>User Name</label>
+    <input type="text" id="username" placeholder="Enter your name" oninput="updateGreeting()">
+
+    <label>Monthly Income</label>
+    <input type="number" id="income" placeholder="Enter monthly income">
+
+    <label>Expense Name</label>
+    <input type="text" id="expenseName" placeholder="e.g. Rent, Food">
+
+    <label>Expense Amount</label>
+    <input type="number" id="expenseAmount" placeholder="Enter amount">
+
+    <div style="display: flex; justify-content: space-between;">
+        <button onclick="addExpense()">Add Expense</button>
+        <button class="clear-btn" onclick="clearAll()">Clear All</button>
+    </div>
+
+    <div class="expense-list" id="expenseList"></div>
+
+    <div class="summary">
+        <div>
+            <span>Total Expenses</span>
+            <span id="totalExpense">₹0</span>
+        </div>
+        <div>
+            <span>Savings</span>
+            <span id="savings" class="savings">₹0</span>
+        </div>
+    </div>
+
+</div>
+
+<script>
+let expenses = [];
+let total = 0;
+
+// Load saved data from localStorage
+window.onload = function() {
+    const savedName = localStorage.getItem("username");
+    const savedIncome = localStorage.getItem("income");
+    const savedExpenses = JSON.parse(localStorage.getItem("expenses"));
+
+    if(savedName) document.getElementById("username").value = savedName;
+    if(savedIncome) document.getElementById("income").value = savedIncome;
+    if(savedExpenses) {
+        expenses = savedExpenses;
+        total = expenses.reduce((sum, e) => sum + e.amount, 0);
+        renderExpenses();
+        updateSummary(savedIncome ? parseFloat(savedIncome) : 0);
+    }
+    updateGreeting();
+}
+
+function updateGreeting() {
+    const name = document.getElementById("username").value;
+    document.getElementById("greetingText").innerText =
+        name ? "Hello, " + name + " 👋" : "Welcome!";
+    localStorage.setItem("username", name);
+}
+
+function addExpense() {
+    const name = document.getElementById("expenseName").value;
+    const amount = parseFloat(document.getElementById("expenseAmount").value);
+    const income = parseFloat(document.getElementById("income").value);
+
+    if (!income || income <= 0) {
+        alert("Please enter your monthly income first.");
+        return;
+    }
+
+    if (name === "" || !amount || amount <= 0) {
+        alert("Please enter valid expense details.");
+        return;
+    }
+
+    expenses.push({ name, amount });
+    total += amount;
+
+    document.getElementById("expenseName").value = "";
+    document.getElementById("expenseAmount").value = "";
+
+    localStorage.setItem("expenses", JSON.stringify(expenses));
+
+    renderExpenses();
+    updateSummary(income);
+}
+
+function renderExpenses() {
+    const list = document.getElementById("expenseList");
+    list.innerHTML = "";
+
+    expenses.forEach(exp => {
+        const div = document.createElement("div");
+        div.className = "expense-item";
+        div.innerHTML = `<span>${exp.name}</span><span>₹${exp.amount}</span>`;
+        list.appendChild(div);
+    });
+}
+
+function updateSummary(income) {
+    const savings = income - total;
+
+    document.getElementById("totalExpense").innerText = "₹" + total;
+    const savingsEl = document.getElementById("savings");
+    savingsEl.innerText = "₹" + savings;
+
+    if (savings < 0) {
+        savingsEl.classList.remove("savings");
+        savingsEl.classList.add("loss");
+    } else {
+        savingsEl.classList.remove("loss");
+        savingsEl.classList.add("savings");
+    }
+
+    localStorage.setItem("income", income);
+}
+
+function clearAll() {
+    if(confirm("Are you sure you want to clear all data?")) {
+        expenses = [];
+        total = 0;
+        document.getElementById("username").value = "";
+        document.getElementById("income").value = "";
+        document.getElementById("expenseName").value = "";
+        document.getElementById("expenseAmount").value = "";
+        document.getElementById("expenseList").innerHTML = "";
+        document.getElementById("totalExpense").innerText = "₹0";
+        document.getElementById("savings").innerText = "₹0";
+        document.getElementById("savings").classList.add("savings");
+        localStorage.clear();
+        updateGreeting();
+    }
+}
+</script>
+
+</body>
+</html>
